@@ -1,0 +1,18 @@
+# VS Code local settings
+.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Generated packages
+dist/
+build/
+
+# ZIP releases
+*.zip
