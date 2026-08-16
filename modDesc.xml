@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="111">
+    <author>Robert Drygas / ChatGPT</author>
+    <version>1.0.0.0</version>
+
+    <title>
+        <en>Automatic Pipe Light</en>
+        <pl>Automatyczne światło rury</pl>
+    </title>
+
+    <description>
+        <en><![CDATA[
+Automatically switches the unloading pipe light on when the pipe is unfolded at night and switches it off when the pipe is folded.
+The mod affects only player-controlled vehicles and does not replace the normal manual light controls.
+Supports vehicle types using the Pipe and Lights specializations, including combines, root-crop harvesters and compatible auger wagons.
+        ]]></en>
+        <pl><![CDATA[
+Automatycznie włącza światło rury wyładowczej po rozłożeniu rury w nocy i wyłącza je po złożeniu rury.
+Mod działa tylko dla pojazdów sterowanych przez gracza i nie zastępuje normalnego ręcznego sterowania światłami.
+Obsługuje typy pojazdów używające specjalizacji Pipe i Lights, w tym kombajny, kombajny do roślin okopowych oraz zgodne wozy/przyczepy przeładunkowe.
+        ]]></pl>
+    </description>
+
+    <multiplayer supported="false" />
+	
+	<iconFilename>mod_icon.dds</iconFilename>
+
+    <specializations>
+        <specialization name="autoPipeLight" className="AutoPipeLight" filename="scripts/AutoPipeLight.lua" />
+    </specializations>
+
+    <extraSourceFiles>
+        <sourceFile filename="scripts/AutoPipeLightInit.lua" />
+    </extraSourceFiles>
+</modDesc>
