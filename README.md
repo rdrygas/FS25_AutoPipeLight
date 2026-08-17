@@ -51,3 +51,8 @@ If the vehicle has an unusual headlight configuration, you can also change the c
 ```lua
 AutoPipeLight.FALLBACK_LIGHT_TYPE = 4
 ```
+
+## Screenshots
+
+![A combine harvester with the discharge pipe extended.](screenshots/2300320_15.jpg)
+![A beet harvester with an extended discharge elevator.](screenshots/2300320_17.jpg)
