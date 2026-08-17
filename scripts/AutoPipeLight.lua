@@ -17,6 +17,7 @@ AutoPipeLight = {}
 AutoPipeLight.FALLBACK_LIGHT_TYPE = 4
 AutoPipeLight.DEBUG = false
 
+-- Debug print with vehicle name prefix. The vehicle name is taken from the config file path, which is not guaranteed to be unique.
 local function debugPrint(vehicle, text, ...)
     if not AutoPipeLight.DEBUG then
         return
@@ -26,10 +27,14 @@ local function debugPrint(vehicle, text, ...)
     print(string.format("[AutoPipeLight] %s: %s", vehicleName, string.format(text, ...)))
 end
 
+-- Check if a scenegraph node is valid. The node may be nil or 0, which is not a valid node.
 local function isValidNode(node)
     return node ~= nil and node ~= 0
 end
 
+-- Check if a scenegraph node is part of the pipe animation. 
+-- This is used to identify lights that are physically mounted on the pipe, 
+-- even if the vehicle does not explicitly expose them in spec_pipe.nodes.
 local function isNodeInPipeAnimation(vehicle, pipeSpec, node)
     if pipeSpec.animation == nil
     or pipeSpec.animation.name == nil
@@ -67,6 +72,8 @@ local function isNodeInPipeAnimation(vehicle, pipeSpec, node)
     return false
 end
 
+-- Check if a scenegraph node is related to the pipe. A light is treated as a pipe light if one
+-- of its parents is an explicit Pipe node or participates in the pipe animation.
 local function isNodeRelatedToPipe(vehicle, node)
     if not isValidNode(node) then
         return false
@@ -116,6 +123,11 @@ local function isNodeRelatedToPipe(vehicle, node)
     return false
 end
 
+-- Add the light types used by a light to the usage table. 
+-- The usage table is indexed by light type and contains a table with two boolean fields: pipe and other. 
+-- The pipe field is true if the light type is used by a pipe-mounted light, 
+-- and the other field is true if the light type is used by a non-pipe-mounted light. 
+-- The usage table is used to detect which light types are used by pipe-mounted lights and which are used by other lights.
 local function addLightUsage(vehicle, light, usage)
     if light == nil or not isValidNode(light.node) or light.lightTypes == nil then
         return
@@ -143,6 +155,9 @@ local function addLightUsage(vehicle, light, usage)
     end
 end
 
+-- Detect which light types are used by pipe-mounted lights and which are used by other lights.
+-- Returns a bitmask of the light types used by pipe-mounted lights and a string indicating the detection method used. 
+-- The detection method can be "detected-unique", "detected-custom", "fallback-type4", or "none".
 local function detectPipeLightMask(vehicle)
     local lightsSpec = vehicle.spec_lights
     if lightsSpec == nil then
@@ -204,6 +219,9 @@ local function detectPipeLightMask(vehicle)
     return 0, "none"
 end
 
+-- Set the light types mask of the vehicle, but mark the change as internal so that
+-- onLightsTypesMaskChanged does not reset the autoOwnedMask. This is used to avoid 
+-- treating automatic light changes as manual changes.
 local function setMaskInternal(vehicle, newMask)
     local state = vehicle.autoPipeLightState
     local lightsSpec = vehicle.spec_lights
@@ -221,6 +239,8 @@ local function setMaskInternal(vehicle, newMask)
     state.lastObservedMask = vehicle.spec_lights.lightsTypesMask
 end
 
+-- Switch on the pipe light automatically if it is not already on. 
+-- This is called when the pipe is unfolded at night.
 local function switchOnAutomatically(vehicle)
     local state = vehicle.autoPipeLightState
     local lightsSpec = vehicle.spec_lights
@@ -243,6 +263,8 @@ local function switchOnAutomatically(vehicle)
     setMaskInternal(vehicle, bitOR(currentMask, state.pipeLightMask))
 end
 
+-- Switch off the pipe light automatically if it is on. 
+-- This is called when the pipe is folded, regardless of whether it is day or night.
 local function switchOffBecausePipeFolded(vehicle)
     local state = vehicle.autoPipeLightState
     local lightsSpec = vehicle.spec_lights
@@ -258,6 +280,8 @@ local function switchOffBecausePipeFolded(vehicle)
     setMaskInternal(vehicle, newMask)
 end
 
+-- Remove the light types that were automatically added by this mod.
+-- This is called at dawn or when the player stops controlling the vehicle.
 local function removeAutomaticLight(vehicle)
     local state = vehicle.autoPipeLightState
     local lightsSpec = vehicle.spec_lights
@@ -273,14 +297,19 @@ local function removeAutomaticLight(vehicle)
     setMaskInternal(vehicle, newMask)
 end
 
+-- Check if the vehicle has the required specializations for AutoPipeLight.
 function AutoPipeLight.prerequisitesPresent(specializations)
     return SpecializationUtil.hasSpecialization(Pipe, specializations)
        and SpecializationUtil.hasSpecialization(Lights, specializations)
 end
 
+-- Initialize the AutoPipeLight specialization. 
+-- This function is called when the specialization is registered.
 function AutoPipeLight.initSpecialization()
 end
 
+-- Register event listeners for the AutoPipeLight specialization. 
+-- This function is called when the specialization is registered.
 function AutoPipeLight.registerEventListeners(vehicleType)
     SpecializationUtil.registerEventListener(vehicleType, "onLoad", AutoPipeLight)
     SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", AutoPipeLight)
@@ -288,6 +317,8 @@ function AutoPipeLight.registerEventListeners(vehicleType)
     SpecializationUtil.registerEventListener(vehicleType, "onLightsTypesMaskChanged", AutoPipeLight)
 end
 
+-- Initialize the AutoPipeLight state when the vehicle is loaded. 
+-- This function is called when the vehicle is loaded from a savegame or created in the game.
 function AutoPipeLight:onLoad(savegame)
     self.autoPipeLightState = {
         pipeLightMask = 0,
@@ -302,6 +333,7 @@ function AutoPipeLight:onLoad(savegame)
     }
 end
 
+-- Finalize the AutoPipeLight state when the vehicle has finished loading.
 function AutoPipeLight:onLoadFinished(savegame)
     local state = self.autoPipeLightState
     if state == nil or self.spec_lights == nil or self.spec_pipe == nil then
@@ -315,6 +347,8 @@ function AutoPipeLight:onLoadFinished(savegame)
     debugPrint(self, "pipe light mask=%d (%s)", state.pipeLightMask, state.detectionMethod)
 end
 
+-- Handle changes to the light types mask. 
+-- This function is called when the light types mask is changed, either by the player or by another system.
 function AutoPipeLight:onLightsTypesMaskChanged(lightsTypesMask)
     local state = self.autoPipeLightState
     if state == nil then
@@ -335,6 +369,7 @@ function AutoPipeLight:onLightsTypesMaskChanged(lightsTypesMask)
     state.lastObservedMask = lightsTypesMask
 end
 
+-- Update the AutoPipeLight state on each tick.
 function AutoPipeLight:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
     local state = self.autoPipeLightState
     if state == nil or not state.ready or state.pipeLightMask == 0 then
